@@ -11,7 +11,7 @@ def login():
     password = data.get('password')
 
     # Simples validação (exemplo, verificar se o usuário e senha estão corretos)
-    if email == 'admin@example.com' and password == '1234':
+    if email == 'admin@example.com' and password == '12345':
         return jsonify({"message": "Login bem-sucedido!", "status": "success"})
     else:
         return jsonify({"message": "Email ou senha inválidos!", "status": "error"}), 401
