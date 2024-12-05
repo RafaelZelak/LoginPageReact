@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import Button from '../Button/Button';
 import Input from '../Input/Input';
+import ToggleButton from '../Button/ToggleButton';
 
 const LoginForm = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
-  const [status, setStatus] = useState(''); // Status da resposta do backend
-  const [showLink, setShowLink] = useState(true); // Controla se o link "Criar Conta" aparece
+  const [status, setStatus] = useState('');
+  const [showLink, setShowLink] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('Aguarde...');
-    setStatus('pending'); // Define como "pendente" enquanto espera a resposta
-    setShowLink(false); // Substitui o link imediatamente ao enviar
+    setStatus('pending');
+    setShowLink(false);
 
     try {
       const response = await fetch('http://localhost:5000/login', {
@@ -36,25 +38,34 @@ const LoginForm = () => {
       setStatus('error');
     }
 
-    // Restaura o link "Criar Conta" após 2 segundos
     setTimeout(() => {
       setShowLink(true);
-      setMessage(''); // Limpa a mensagem após restaurar o link
+      setMessage('');
     }, 2000);
+  };
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
   };
 
   return (
     <div
-      className="flex items-center justify-center min-h-screen bg-cover bg-center bg-no-repeat"
+      className={`flex items-center justify-center min-h-screen bg-cover bg-center bg-no-repeat ${
+        isDarkMode ? 'text-white' : 'text-indigo-950'
+      }`}
       style={{
-        backgroundImage: `url(${process.env.PUBLIC_URL}/img/BackgroundLight.jpg)`,
+        backgroundImage: `url(${process.env.PUBLIC_URL}/img/${
+          isDarkMode ? 'BackgroundDark' : 'BackgroundLight'
+        }.jpg)`,
       }}
     >
       <div
-        className="bg-white bg-opacity-10 backdrop-blur-md p-6 rounded-lg shadow-lg w-full max-w-sm flex flex-col justify-between"
+        className={`${
+          isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-indigo-950'
+        } bg-opacity-10 backdrop-blur-md p-6 rounded-lg shadow-lg w-full max-w-sm flex flex-col justify-between`}
         style={{ minHeight: '450px' }}
       >
-        <h1 className="text-3xl font-semibold text-center text-indigo-950 mb-12 mt-6">
+        <h1 className="text-3xl font-semibold text-center mb-6">
           Bem-vindo de volta!
         </h1>
         <form onSubmit={handleSubmit} className="flex flex-col flex-grow">
@@ -64,19 +75,26 @@ const LoginForm = () => {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              darkMode={isDarkMode}
             />
             <Input
               type="password"
               placeholder="Senha"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              darkMode={isDarkMode}
             />
           </div>
           <div className="mt-auto">
-            <Button>Entrar</Button>
+            <Button darkMode={isDarkMode}>Entrar</Button>
           </div>
           {showLink ? (
-            <a href="#" className="text-center mt-4 cursor-pointer">
+            <a
+              href="#"
+              className={`text-center mt-4 cursor-pointer ${
+                isDarkMode ? 'text-indigo-300' : 'text-indigo-950'
+              }`}
+            >
               Criar Conta
             </a>
           ) : (
@@ -86,6 +104,8 @@ const LoginForm = () => {
                   ? 'text-green-500'
                   : status === 'error'
                   ? 'text-red-500'
+                  : isDarkMode
+                  ? 'text-indigo-300'
                   : 'text-indigo-950'
               }`}
             >
@@ -93,6 +113,9 @@ const LoginForm = () => {
             </p>
           )}
         </form>
+      </div>
+      <div className="fixed bottom-4 right-4">
+        <ToggleButton isDarkMode={isDarkMode} toggleDarkMode={toggleDarkMode} />
       </div>
     </div>
   );
