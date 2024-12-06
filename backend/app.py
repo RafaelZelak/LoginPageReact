@@ -3,7 +3,7 @@ from flask_cors import CORS
 import jwt
 import datetime
 
-SECRET_KEY = "sua_chave_secreta"
+SECRET_KEY = "calvo"
 
 app = Flask(__name__)
 CORS(app)
@@ -11,7 +11,7 @@ CORS(app)
 # Dados simulados para login
 users = {
     "admin@example.com": "12345",
-    "user1@example.com": "senha123"
+    "zozo@zozo.com": "zozo"
 }
 
 @app.route('/login', methods=['POST'])
