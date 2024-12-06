@@ -41,7 +41,7 @@ source .venv/bin/activate
 ````
 ### 4 - Instale as dependências:
 ````python
-pip install -r requirements.txt
+pip install flask flask_cors
 ````
 
 ### 5 - Inicie o servidor Flask:
@@ -70,6 +70,104 @@ npm start
 O frontend estará disponível em http://localhost:3000
 ###### Na porta :3000 que será acessado a interface do sistema
 
-## Considerações
+### Considerações
 #### - Certifique-se de que o backend e o frontend estão rodando simultaneamente para que a aplicação funcione corretamente.
 #### - As configurações de CORS já estão habilitadas no backend para permitir a comunicação com o React.
+
+# Database (PostgreSQL )
+Para o Banco de Dados da aplicação, será utilizado o PostgreSQL
+
+Importante garantir que o PostgreSQL V17 ou superior está instalado e configurado em sua máquina
+
+Caso esteja no Windows, antes de começar, configure o caminho do PostgreSQL no ambiente:
+```` bash
+set PATH=%PATH%;C:\Program Files\PostgreSQL\<versão>\bin
+````
+
+## Criando a Database
+### 1 - Abra o CLI do PostgreSQL
+
+```` bash
+psql -U postgres
+````
+### 2 - Crie o Banco de Dados
+
+```` SQL
+CREATE DATABASE gestao_negocio;
+````
+###### O nome no caso reflete ao sistema final, o meu está como "gestao_negocio" mas caso queira mudar basta alterar no backand também, na parte das credenciais do banco
+
+### 2.1 - Verificar se o banco foi criado (opicional)
+```` bash
+\l
+````
+Caso o banco tenha sido criado o retorno será algo como
+
+```` bash
+       Name        |  Owner   | Encoding | Locale Provider |        Collate         |         Ctype          | Locale | ICU Rules |   Access privileges
+ -------------------+----------+----------+-----------------+------------------------+------------------------+--------+-----------+-----------------------
+ gestao_negocio    | postgres | UTF8     | libc            | Portuguese_Brazil.1252 | Portuguese_Brazil.1252 |        |           |
+ ````
+### 3 - Sair do Shell PostgreSQL`
+```` SQL
+\q
+````
+
+### 4 - Criar tabelas
+Conecte-se ao banco usando o comando:
+```` bash
+psql -U postgres -d gestao_negocio
+````
+### 5 - Crie a Tabela `users`
+No shell do PostgreSQL execute:
+
+````SQL
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    tipo_usuario VARCHAR(50) NOT NULL,
+    status BOOLEAN NOT NULL DEFAULT TRUE
+);
+````
+### 5.1 - Verificar se a tabela foi criada (opicional)
+````SQL
+\d users
+````
+O resuldado deve ser algo como
+````SQL
+                                       Table "public.users"
+    Column    |          Type          | Collation | Nullable |              Default
+--------------+------------------------+-----------+----------+-----------------------------------
+ id           | integer                |           | not null | nextval('users_id_seq'::regclass)
+ nome         | character varying(255) |           | not null |
+ email        | character varying(255) |           | not null |
+ senha        | character varying(255) |           | not null |
+ tipo_usuario | character varying(50)  |           | not null |
+ status       | boolean                |           | not null | true
+Indexes:
+    "users_pkey" PRIMARY KEY, btree (id)
+    "users_email_key" UNIQUE CONSTRAINT, btree (email)
+
+````
+
+### 6 - Para teste, crie um user direto no banco (Opicional)
+````SQL
+INSERT INTO users (nome, email, senha, tipo_usuario, status)
+VALUES
+('Admin', 'admin@email.com', '12345', 'administrador', TRUE);
+````
+
+### 6.1 Consulte os dados:
+````SQL
+SELECT * FROM users;
+````
+O resuldado deve ser algo como
+````SQL
+ id | nome  |      email      | senha | tipo_usuario  | status
+----+-------+-----------------+-------+---------------+--------
+  1 | Admin | admin@email.com | 12345 | administrador | t
+````
+
+###### Pode modificar as credenciais de teste ou simplesmente ignorar este processo
