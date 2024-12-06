@@ -161,6 +161,13 @@ VALUES
 
 ### 6.1 Consulte os dados:
 ````SQL
-
+SELECT * FROM users;
+````
+O resuldado deve ser algo como
+````SQL
+ id | nome  |      email      | senha | tipo_usuario  | status
+----+-------+-----------------+-------+---------------+--------
+  1 | Admin | admin@email.com | 12345 | administrador | t
+````
 
 ###### Pode modificar as credenciais de teste ou simplesmente ignorar este processo
