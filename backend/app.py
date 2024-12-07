@@ -6,7 +6,6 @@ import psycopg2
 from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 
-# Configuração do Flask e CORS
 SECRET_KEY = "calvo"
 app = Flask(__name__)
 CORS(app)
@@ -15,7 +14,7 @@ CORS(app)
 DB_CONFIG = {
     'dbname': 'gestao_negocio',
     'user': 'postgres',
-    'password': 'r1r2r3r4r5',  # Substitua por sua senha
+    'password': 'r1r2r3r4r5',
     'host': 'localhost',
     'port': 5432
 }
@@ -25,11 +24,9 @@ def get_user_from_db(email, password):
     Consulta o banco de dados para buscar um usuário pelo email e senha.
     """
     try:
-        # Conectar ao banco de dados
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-        # Consulta parametrizada para evitar SQL Injection
         query = sql.SQL("""
             SELECT id, nome, email, tipo_usuario, status
             FROM users
@@ -51,13 +48,11 @@ def login():
     email = data.get('email')
     password = data.get('password')
 
-    # Consultar usuário no banco de dados
     user = get_user_from_db(email, password)
 
     if user:
-        # Gerar token JWT com os dados do usuário
         token = jwt.encode({
-            'user': user,  # Adiciona todos os dados do usuário no token
+            'user': user,
             'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
         }, SECRET_KEY, algorithm="HS256")
 

@@ -11,12 +11,10 @@ const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Pegar o token do localStorage
     const token = localStorage.getItem("token");
 
     if (token) {
       try {
-        // Decodificar o token para obter os dados do usuário
         const decoded = jwtDecode(token);
         setUserData({
           email: decoded.user.email,
@@ -25,10 +23,10 @@ const Home = () => {
         });
       } catch (error) {
         console.error("Erro ao decodificar o token:", error);
-        navigate("/"); // Redirecionar para o login em caso de erro
+        navigate("/");
       }
     } else {
-      navigate("/"); // Redirecionar para o login se o token não existir
+      navigate("/");
     }
   }, [navigate]);
 
