@@ -2,17 +2,48 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import jwt
 import datetime
+import psycopg2
+from psycopg2 import sql
+from psycopg2.extras import RealDictCursor
 
+# Configuração do Flask e CORS
 SECRET_KEY = "calvo"
-
 app = Flask(__name__)
 CORS(app)
 
-# Dados simulados para login
-users = {
-    "admin@example.com": "12345",
-    "zozo@zozo.com": "zozo"
+# Configuração do banco de dados
+DB_CONFIG = {
+    'dbname': 'gestao_negocio',
+    'user': 'postgres',
+    'password': 'r1r2r3r4r5',  # Substitua por sua senha
+    'host': 'localhost',
+    'port': 5432
 }
+
+def get_user_from_db(email, password):
+    """
+    Consulta o banco de dados para buscar um usuário pelo email e senha.
+    """
+    try:
+        # Conectar ao banco de dados
+        conn = psycopg2.connect(**DB_CONFIG)
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+
+        # Consulta parametrizada para evitar SQL Injection
+        query = sql.SQL("""
+            SELECT id, nome, email, tipo_usuario, status
+            FROM users
+            WHERE email = %s AND senha = %s
+        """)
+        cursor.execute(query, (email, password))
+
+        # Obter o resultado
+        user = cursor.fetchone()
+        conn.close()
+        return user
+    except Exception as e:
+        print("Erro ao conectar ao banco de dados:", e)
+        return None
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -20,10 +51,13 @@ def login():
     email = data.get('email')
     password = data.get('password')
 
-    if email in users and users[email] == password:
-        # Gerar token JWT com o email do usuário
+    # Consultar usuário no banco de dados
+    user = get_user_from_db(email, password)
+
+    if user:
+        # Gerar token JWT com os dados do usuário
         token = jwt.encode({
-            'email': email,
+            'user': user,  # Adiciona todos os dados do usuário no token
             'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
         }, SECRET_KEY, algorithm="HS256")
 
