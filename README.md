@@ -15,6 +15,7 @@ Antes de começar, certifique-se de ter instalado:
 
 Python (versão 3.7 ou superior)
 Node.js (versão 12 ou superior)
+PostgreSQL (versão 17 ou superior)
 npm ou yarn para gerenciar pacotes no frontend
 
 ## Configuração do Backend (Python)
@@ -76,8 +77,6 @@ O frontend estará disponível em http://localhost:3000
 
 # Database (PostgreSQL )
 Para o Banco de Dados da aplicação, será utilizado o PostgreSQL
-
-Importante garantir que o PostgreSQL V17 ou superior está instalado e configurado em sua máquina
 
 Caso esteja no Windows, antes de começar, configure o caminho do PostgreSQL no ambiente:
 ```` bash
