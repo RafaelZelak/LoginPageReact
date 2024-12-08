@@ -168,9 +168,3 @@ O resuldado deve ser algo como
 ----+-------+-----------------+-------+---------------+--------
   1 | Admin | admin@email.com | 12345 | administrador | t
 ````
-
-<<<<<<< HEAD
-###### Pode modificar as credenciais de teste ou simplesmente ignorar este processo
-=======
-###### Pode modificar as credenciais de teste ou simplesmente ignorar este processo
->>>>>>> 02f66c0a62f0cef8421aaf295dcd319e72e36d66
