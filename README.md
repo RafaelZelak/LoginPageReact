@@ -13,10 +13,10 @@ LoginPage/
 Pré-requisitos
 Antes de começar, certifique-se de ter instalado:
 
-Python (versão 3.7 ou superior)
-Node.js (versão 12 ou superior)
-PostgreSQL (versão 17 ou superior)
-npm ou yarn para gerenciar pacotes no frontend
+ - Python (versão 3.7 ou superior)
+ - Node.js (versão 12 ou superior)
+ - PostgreSQL (versão 17 ou superior)
+ - npm ou yarn para gerenciar pacotes no frontend
 
 ## Configuração do Backend (Python)
 ### 1 - Clone o repositório:
