@@ -5,12 +5,12 @@ import datetime
 import psycopg2
 from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
+import bcrypt
 
 SECRET_KEY = "calvo"
 app = Flask(__name__)
 CORS(app)
 
-# Configuração do banco de dados
 DB_CONFIG = {
     'dbname': 'gestao_negocio',
     'user': 'postgres',
@@ -19,20 +19,17 @@ DB_CONFIG = {
     'port': 5432
 }
 
-def get_user_from_db(email, password):
-    """
-    Consulta o banco de dados para buscar um usuário pelo email e senha.
-    """
+def get_user_from_db(email):
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor(cursor_factory=RealDictCursor)
 
         query = sql.SQL("""
-            SELECT id, nome, email, tipo_usuario, status
+            SELECT id, nome, email, tipo_usuario, status, senha
             FROM users
-            WHERE email = %s AND senha = %s
+            WHERE email = %s
         """)
-        cursor.execute(query, (email, password))
+        cursor.execute(query, (email,))
 
         # Obter o resultado
         user = cursor.fetchone()
@@ -48,15 +45,21 @@ def login():
     email = data.get('email')
     password = data.get('password')
 
-    user = get_user_from_db(email, password)
+    user = get_user_from_db(email)
 
-    if user:
-        token = jwt.encode({
-            'user': user,
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-        }, SECRET_KEY, algorithm="HS256")
+    if user: 
+        hashed_password = user.get('senha')
 
-        return jsonify({"message": "Login bem-sucedido!", "token": token})
+        if hashed_password and hashed_password.startswith("$2b$"):
+            if bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8')):
+                del user['senha']
+                token = jwt.encode({
+                    'user': user,
+                    'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+                }, SECRET_KEY, algorithm="HS256")
+
+                return jsonify({"message": "Login bem-sucedido!", "token": token})
+        return jsonify({"message": "Email ou senha inválidos!"}), 401
     else:
         return jsonify({"message": "Email ou senha inválidos!"}), 401
 
