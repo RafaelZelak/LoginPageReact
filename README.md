@@ -80,7 +80,7 @@ Para o Banco de Dados da aplicação, será utilizado o PostgreSQL
 
 Caso esteja no Windows, antes de começar, configure o caminho do PostgreSQL no ambiente:
 ```` bash
-set PATH=%PATH%;C:\Program Files\PostgreSQL\<versão>\bin
+set PATH=%PATH%;"C:\Program Files\PostgreSQL\<versão>\bin"
 ````
 
 ## Criando a Database
