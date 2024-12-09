@@ -18,14 +18,14 @@ def verify_password(password: str, hashed: str) -> bool:
 
 # Teste
 if __name__ == "__main__":
-    senha = "12345"
+    senha = "zozo"
     hash_gerado = hash_password(senha)
 
     print(f"Senha original: {senha}")
     print(f"Hash gerado: {hash_gerado}")
 
     # Verificando a senha
-    senha_valida = "12345"
+    senha_valida = "zozo"
     senha_invalida = "senhaErrada456"
 
     print(f"Senha válida (deve ser True): {verify_password(senha_valida, hash_gerado)}")
