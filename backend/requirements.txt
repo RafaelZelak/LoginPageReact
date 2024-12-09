@@ -3,3 +3,4 @@ flask_cors
 pyjwt
 psycopg2
 bcrypt
+flask-socketio
