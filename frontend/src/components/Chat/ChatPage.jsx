@@ -1,15 +1,35 @@
 import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
+import {jwtDecode} from "jwt-decode";
+import axios from "axios";
 
-const socket = io("http://localhost:5000"); // Conectar ao servidor Socket.IO
+const socket = io("http://localhost:5000");
 
 const ChatPage = () => {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
-  const username = "Usuário"; // Substitua isso pelas informações reais do usuário, se disponíveis
+
+  const token = localStorage.getItem("token");
+  const user = token ? jwtDecode(token)?.user : null;
 
   useEffect(() => {
-    // Receber mensagens do servidor
+    if (!user) {
+      console.error("Usuário não autenticado.");
+      return;
+    }
+
+    // Carregar mensagens ao montar o componente
+    const fetchMessages = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/chat/load_messages");
+        setMessages(response.data);
+      } catch (error) {
+        console.error("Erro ao carregar mensagens:", error);
+      }
+    };
+
+    fetchMessages();
+
     socket.on("receive_message", (data) => {
       setMessages((prevMessages) => [...prevMessages, data]);
     });
@@ -17,13 +37,13 @@ const ChatPage = () => {
     return () => {
       socket.off("receive_message");
     };
-  }, []);
+  }, [user]);
 
   const handleSendMessage = () => {
-    if (message.trim() !== "") {
-      // Enviar mensagem ao servidor
-      socket.emit("send_message", { username, message });
-      setMessage(""); // Limpar o campo de mensagem
+    if (message.trim() !== "" && user) {
+      const payload = { user_id: user.id, username: user.nome, message };
+      socket.emit("send_message", payload);
+      setMessage("");
     }
   };
 
@@ -32,11 +52,16 @@ const ChatPage = () => {
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
         <h1 className="text-3xl font-semibold mb-4">Chat em Tempo Real</h1>
         <div className="h-64 overflow-y-auto border p-2 rounded mb-4 bg-gray-50">
-          {messages.map((msg, index) => (
-            <div key={index} className="mb-2">
-              <strong>{msg.username}:</strong> {msg.message}
-            </div>
-          ))}
+          {messages.length === 0 ? (
+            <p className="text-gray-500">Nenhuma mensagem ainda.</p>
+          ) : (
+            messages.map((msg) => (
+              <div key={msg.id} className="mb-2">
+                <strong>{msg.username}:</strong> {msg.message}
+                <div className="text-sm text-gray-500">{new Date(msg.created_at).toLocaleString()}</div>
+              </div>
+            ))
+          )}
         </div>
         <div className="flex">
           <input

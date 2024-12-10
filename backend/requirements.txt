@@ -4,3 +4,4 @@ pyjwt
 psycopg2
 bcrypt
 flask-socketio
+flask_sqlalchemy
