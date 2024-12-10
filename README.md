@@ -118,8 +118,9 @@ Conecte-se ao banco usando o comando:
 ```` bash
 psql -U postgres -d gestao_negocio
 ````
-### 5 - Crie a Tabela `users`
-No shell do PostgreSQL execute:
+### 5 - Crie a Tabela `users` e `chat_messages` 
+No shell do PostgreSQL execute: </br>
+Para a `Users`:
 
 ````SQL
 CREATE TABLE users (
@@ -129,6 +130,17 @@ CREATE TABLE users (
     senha VARCHAR(255) NOT NULL,
     tipo_usuario VARCHAR(50) NOT NULL,
     status BOOLEAN NOT NULL DEFAULT TRUE
+);
+````
+Para a `chat_messages`:
+
+````SQL
+CREATE TABLE chat_messages (
+    id SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted BOOLEAN DEFAULT FALSE
 );
 ````
 ### 5.1 - Verificar se a tabela foi criada (opicional)
@@ -153,10 +165,11 @@ Indexes:
 ````
 
 ### 6 - Para teste, crie um user direto no banco (Opicional)
+Neste caso a senha ficou como `12345` Deixei ela já criptografada para o sistema funcionar corretamente
 ````SQL
 INSERT INTO users (nome, email, senha, tipo_usuario, status)
 VALUES
-('Admin', 'admin@email.com', '12345', 'administrador', TRUE);
+('Admin', 'admin@email.com', '$2b$12$iG.djF4/FA3E1VqNOKQZruZFjx4d3RG7sHzR82S80dGgFE7pHTw2i', 'administrador', TRUE);
 ````
 
 ### 6.1 Consulte os dados:
@@ -167,5 +180,5 @@ O resuldado deve ser algo como
 ````SQL
  id | nome  |      email      | senha | tipo_usuario  | status
 ----+-------+-----------------+-------+---------------+--------
-  1 | Admin | admin@email.com | 12345 | administrador | t
+  1 | Admin | admin@email.com | $2b$1... | administrador | t
 ````
