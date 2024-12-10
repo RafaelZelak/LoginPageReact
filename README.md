@@ -165,6 +165,7 @@ Indexes:
 ````
 
 ### 6 - Para teste, crie um user direto no banco (Opicional)
+Neste caso a senha ficou como `12345` Deixei ela já criptografada para o sistema funcionar corretamente
 ````SQL
 INSERT INTO users (nome, email, senha, tipo_usuario, status)
 VALUES
