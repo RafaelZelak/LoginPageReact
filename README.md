@@ -118,7 +118,7 @@ Conecte-se ao banco usando o comando:
 ```` bash
 psql -U postgres -d gestao_negocio
 ````
-### 5 - Crie a Tabela `users` e `chat_messages` 
+### 5 - Crie a Tabela `users`, `chat_messages` e `chat_rooms` 
 No shell do PostgreSQL execute: </br>
 Para a `Users`:
 
@@ -140,7 +140,18 @@ CREATE TABLE chat_messages (
     user_id INT REFERENCES users(id) ON DELETE CASCADE,
     message TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    room_id INT REFERENCES chat_rooms(id) ON DELETE CASCADE,
     deleted BOOLEAN DEFAULT FALSE
+);
+````
+
+Para a `chat_rooms`
+````SQL
+CREATE TABLE chat_rooms (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ````
 ### 5.1 - Verificar se a tabela foi criada (opicional)
