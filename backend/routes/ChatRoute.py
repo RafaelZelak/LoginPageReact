@@ -3,6 +3,9 @@ from flask_socketio import emit
 from extensions import socketio
 from services.ChatService import ChatService
 from extensions import db
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.WARNING)
 
 chat_route = Blueprint('chat_route', __name__)
 
@@ -12,14 +15,12 @@ def load_messages():
         messages = ChatService.get_messages()
         return jsonify(messages), 200
     except Exception as e:
-        # Log o erro detalhado no console
-        import traceback
-        traceback.print_exc()
+        logging.error(f"Erro ao carregar mensagens: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @socketio.on('send_message')
 def handle_send_message(data):
-    user_id = data.get('user_id')  # Assumindo que o frontend envia o user_id
+    user_id = data.get('user_id')
     message = data.get('message', '')
 
     if not user_id or not message.strip():

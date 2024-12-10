@@ -24,6 +24,7 @@ def create_app():
     app.register_blueprint(login_route, url_prefix="/login")
     app.register_blueprint(chat_route, url_prefix="/chat")
 
+
     return app
 
 if __name__ == '__main__':

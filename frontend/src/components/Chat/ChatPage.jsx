@@ -13,16 +13,17 @@ const ChatPage = () => {
   const user = token ? jwtDecode(token)?.user : null;
 
   useEffect(() => {
+    let isMounted = true;
+
     if (!user) {
       console.error("Usuário não autenticado.");
       return;
     }
 
-    // Carregar mensagens ao montar o componente
     const fetchMessages = async () => {
       try {
         const response = await axios.get("http://localhost:5000/chat/load_messages");
-        setMessages(response.data);
+        if (isMounted) setMessages(response.data);
       } catch (error) {
         console.error("Erro ao carregar mensagens:", error);
       }
@@ -31,10 +32,14 @@ const ChatPage = () => {
     fetchMessages();
 
     socket.on("receive_message", (data) => {
-      setMessages((prevMessages) => [...prevMessages, data]);
+      setMessages((prevMessages) => {
+        if (prevMessages.some((msg) => msg.id === data.id)) return prevMessages;
+        return [...prevMessages, data];
+      });
     });
 
     return () => {
+      isMounted = false;
       socket.off("receive_message");
     };
   }, [user]);
