@@ -142,6 +142,7 @@ CREATE TABLE chat_messages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     room_id INT REFERENCES chat_rooms(id) ON DELETE CASCADE,
     deleted BOOLEAN DEFAULT FALSE
+    read_by_mongo VARCHAR;
 );
 ````
 
