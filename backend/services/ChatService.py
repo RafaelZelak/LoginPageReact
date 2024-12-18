@@ -3,15 +3,15 @@ from sqlalchemy import text
 
 class ChatService:
     @staticmethod
-    def save_message(user_id, message):
+    def save_message(user_id, message, room_id):
         query = text("""
-            INSERT INTO chat_messages (user_id, message)
-            VALUES (:user_id, :message)
+            INSERT INTO chat_messages (user_id, message, room_id, deleted)
+            VALUES (:user_id, :message, :room_id, FALSE)
             RETURNING id, created_at;
         """)
-        result = db.session.execute(query, {"user_id": user_id, "message": message})
+        result = db.session.execute(query, {'user_id': user_id, 'message': message, 'room_id': room_id})
         db.session.commit()
-        return result.fetchone()
+        return result.fetchone()  # Retorna o ID e created_at da mensagem
 
     @staticmethod
     def get_messages():

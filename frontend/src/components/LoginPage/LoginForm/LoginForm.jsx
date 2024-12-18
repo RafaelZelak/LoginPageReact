@@ -52,6 +52,10 @@ const LoginForm = () => {
     setIsDarkMode(!isDarkMode);
   };
 
+  const handleSignupClick = () => {
+    navigate("/SignupForm"); // Redireciona para a página de cadastro
+  };
+
   return (
     <div
       className={`flex items-center justify-center min-h-screen bg-cover bg-center bg-no-repeat ${
@@ -95,6 +99,7 @@ const LoginForm = () => {
           {showLink ? (
             <a
               href="#"
+              onClick={handleSignupClick} // Chamamos a função de redirecionamento
               className={`text-center mt-4 cursor-pointer ${
                 isDarkMode ? "text-indigo-300" : "text-indigo-950"
               }`}
