@@ -98,17 +98,27 @@ def list_rooms():
 @chat_route.route('/delete_room/<int:room_id>', methods=['DELETE'])
 def delete_room(room_id):
     try:
-        query = text("""
+        # Marca a sala como deletada
+        query_room = text("""
             UPDATE chat_rooms
             SET deleted = TRUE
             WHERE id = :room_id;
         """)
-        db.session.execute(query, {'room_id': room_id})
+        db.session.execute(query_room, {'room_id': room_id})
+
+        # Marca todas as mensagens dessa sala como deletadas
+        query_messages = text("""
+            UPDATE chat_messages
+            SET deleted = TRUE
+            WHERE room_id = :room_id;
+        """)
+        db.session.execute(query_messages, {'room_id': room_id})
+
         db.session.commit()
-        return jsonify({'message': 'Sala deletada com sucesso'}), 200
+        return jsonify({'message': 'Sala e mensagens associadas deletadas com sucesso'}), 200
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Erro ao deletar sala: {str(e)}")
+        logging.error(f"Erro ao deletar sala {room_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @chat_route.route('/room/<int:room_id>/messages', methods=['GET'])

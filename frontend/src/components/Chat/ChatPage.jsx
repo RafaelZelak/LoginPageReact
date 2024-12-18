@@ -2,19 +2,35 @@ import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
-import './ChatPage.css';
 
 const socket = io("http://localhost:5000");
 
-const Contact = ({ name, bgColor, onClick }) => (
-  <div
-    className="flex items-center space-x-4 cursor-pointer hover:bg-gray-700 p-3 rounded-lg transition duration-300"
-    onClick={onClick}
-  >
-    <div className={`w-12 h-12 ${bgColor} rounded-full`}></div>
-    <span className="text-lg font-medium">{name}</span>
-  </div>
-);
+const Contact = ({ name, bgColor, onClick, onDelete }) => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      className="flex items-center space-x-4 cursor-pointer hover:bg-gray-700 p-3 rounded-lg transition duration-300 relative"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onClick}
+    >
+      <div className={`w-12 h-12 ${bgColor} rounded-full`}></div>
+      <span className="text-lg font-medium">{name}</span>
+      {hovered && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="absolute right-4 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400"
+        >
+          Apagar
+        </button>
+      )}
+    </div>
+  );
+};
 
 const ChatPage = () => {
   const [rooms, setRooms] = useState([]);
@@ -22,6 +38,8 @@ const ChatPage = () => {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [newRoomName, setNewRoomName] = useState("");
+  const [showDeletePopup, setShowDeletePopup] = useState(false);
+  const [roomToDelete, setRoomToDelete] = useState(null);
 
   const token = localStorage.getItem("token");
   const user = token ? jwtDecode(token)?.user : null;
@@ -68,6 +86,26 @@ const ChatPage = () => {
     }
   };
 
+  const confirmDeleteRoom = (roomId) => {
+    setShowDeletePopup(true);
+    setRoomToDelete(roomId);
+  };
+
+  const handleDeleteRoom = async () => {
+    try {
+      await axios.delete(`http://localhost:5000/chat/delete_room/${roomToDelete}`);
+      setRooms(rooms.filter((room) => room.id !== roomToDelete));
+      if (currentRoom?.id === roomToDelete) {
+        setCurrentRoom(null);
+        setMessages([]);
+      }
+      setShowDeletePopup(false);
+    } catch (error) {
+      console.error("Erro ao apagar sala:", error);
+      alert("Erro ao apagar sala.");
+    }
+  };
+
   const handleSendMessage = () => {
     if (message.trim() !== "" && user && currentRoom) {
       const payload = {
@@ -75,15 +113,11 @@ const ChatPage = () => {
         username: user.nome,
         message,
         room_id: currentRoom.id,
-        created_at: new Date().toISOString(), // Inclui timestamp localmente
+        created_at: new Date().toISOString(),
       };
 
-      // Emite mensagem via WebSocket
       socket.emit("send_message", payload);
-
-      // Atualiza o estado local imediatamente
       setMessages((prevMessages) => [...prevMessages, payload]);
-
       setMessage("");
     }
   };
@@ -113,6 +147,7 @@ const ChatPage = () => {
               name={room.name}
               bgColor="bg-blue-600"
               onClick={() => handleSelectRoom(room)}
+              onDelete={() => confirmDeleteRoom(room.id)}
             />
           ))}
         </div>
@@ -134,41 +169,39 @@ const ChatPage = () => {
       </div>
 
       <div className="flex-1 bg-gradient-to-br from-blue-200 via-blue-100 to-blue-200 p-6 overflow-hidden">
-        <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8 text-gray-800">
-            {currentRoom ? `Chat: ${currentRoom.name}` : "Selecione uma sala"}
-          </h1>
-
-          <div className="h-[700px] overflow-y-auto border border-gray-300 p-4 rounded-lg mb-6 bg-gray-50 shadow-inner">
-            {messages.length === 0 ? (
-              <p className="text-gray-500">Nenhuma mensagem ainda.</p>
-            ) : (
-              messages.map((msg) => (
-                <div
-                  key={msg.id || Math.random()} // Evitar problemas com mensagens sem ID
-                  className={`mb-4 flex ${
-                    msg.username === user.nome ? "justify-end" : "justify-start"
-                  }`}
-                >
+        {currentRoom ? (
+          <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold mb-8 text-gray-800">
+              Chat: {currentRoom.name}
+            </h1>
+            <div className="h-[700px] overflow-y-auto border border-gray-300 p-4 rounded-lg mb-6 bg-gray-50 shadow-inner">
+              {messages.length === 0 ? (
+                <p className="text-gray-500">Nenhuma mensagem ainda.</p>
+              ) : (
+                messages.map((msg) => (
                   <div
-                    className={`max-w-lg p-4 rounded-lg text-white ${
-                      msg.username === user.nome
-                        ? "bg-sky-600/90"
-                        : "bg-gray-600"
+                    key={msg.id || Math.random()}
+                    className={`mb-4 flex ${
+                      msg.username === user.nome ? "justify-end" : "justify-start"
                     }`}
                   >
-                    <strong>{msg.username}:</strong>
-                    <p>{msg.message}</p>
-                    <div className="text-sm text-gray-300">
-                      {new Date(msg.created_at).toLocaleString()}
+                    <div
+                      className={`max-w-lg p-4 rounded-lg text-white ${
+                        msg.username === user.nome
+                          ? "bg-sky-600/90"
+                          : "bg-gray-600"
+                      }`}
+                    >
+                      <strong>{msg.username}:</strong>
+                      <p>{msg.message}</p>
+                      <div className="text-sm text-gray-300">
+                        {new Date(msg.created_at).toLocaleString()}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {currentRoom && (
+                ))
+              )}
+            </div>
             <div className="flex gap-4 items-center">
               <input
                 type="text"
@@ -184,9 +217,40 @@ const ChatPage = () => {
                 Enviar
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-gray-500 text-lg">Selecione uma sala</p>
+          </div>
+        )}
       </div>
+
+      {showDeletePopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-96">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Apagar sala de chat?
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Esta ação não pode ser desfeita. Deseja continuar?
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => setShowDeletePopup(false)}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-800"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteRoom}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-md text-white"
+              >
+                Apagar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
