@@ -176,33 +176,61 @@ const ChatPage = () => {
               Chat: {currentRoom.name}
             </h1>
             <div className="h-[700px] overflow-y-auto border border-gray-300 p-4 rounded-lg mb-6 bg-gray-50 shadow-inner">
-              {messages.length === 0 ? (
-                <p className="text-gray-500">Nenhuma mensagem ainda.</p>
-              ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.id || Math.random()}
-                    className={`mb-4 flex ${
-                      msg.username === user.nome ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-lg p-4 rounded-lg text-white ${
-                        msg.username === user.nome
-                          ? "bg-sky-600/90"
-                          : "bg-gray-600"
-                      }`}
-                    >
-                      <strong>{msg.username}:</strong>
-                      <p>{msg.message}</p>
-                      <div className="text-sm text-gray-300">
-                        {new Date(msg.created_at).toLocaleString()}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
+  {messages.length === 0 ? (
+    <p className="text-gray-500">Nenhuma mensagem ainda.</p>
+  ) : (
+    messages.reduce((acc, msg, index, array) => {
+      const currentDate = new Date(msg.created_at).toLocaleDateString();
+      const previousDate =
+        index > 0 ? new Date(array[index - 1].created_at).toLocaleDateString() : null;
+
+      if (currentDate !== previousDate) {
+        acc.push(
+          <div
+            key={`date-${currentDate}`}
+            className="relative flex items-center my-6"
+          >
+            <div className="flex-grow border-t border-gray-200"></div>
+            <span className="px-4 text-sm font-medium text-gray-400">
+              {currentDate}
+            </span>
+            <div className="flex-grow border-t border-gray-200"></div>
+          </div>
+        );
+      }
+
+      acc.push(
+        <div
+          key={msg.id || Math.random()}
+          className={`mb-4 flex ${
+            msg.username === user.nome ? "justify-end" : "justify-start"
+          }`}
+        >
+          <div
+            className={`max-w-md w-full p-4 rounded-lg text-white shadow-md ${
+              msg.username === user.nome ? "bg-sky-600/90" : "bg-gray-600"
+            }`}
+          >
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs text-gray-200">{msg.username}</span>
+              <span className="text-xs text-gray-300">
+                {new Date(msg.created_at).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
             </div>
+            <p className="text-base">{msg.message}</p>
+          </div>
+        </div>
+      );
+
+
+      return acc;
+    }, [])
+  )}
+</div>
+
             <div className="flex gap-4 items-center">
               <input
                 type="text"
