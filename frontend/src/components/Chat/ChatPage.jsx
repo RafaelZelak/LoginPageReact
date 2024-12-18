@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
+import './ChatPage.css'
 
 const socket = io("http://localhost:5000");
 
@@ -23,8 +24,8 @@ const Contact = ({ name, bgColor, onClick, onDelete }) => {
             e.stopPropagation();
             onDelete();
           }}
-          className="absolute right-4 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400"
-        >
+          className="absolute right-3 opacity-20 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-sm shadow-md hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition-opacity duration-300"
+          >
           Apagar
         </button>
       )}
@@ -210,12 +211,23 @@ const ChatPage = () => {
                 className="flex-grow p-4 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-md"
                 placeholder="Digite sua mensagem"
               />
-              <button
-                onClick={handleSendMessage}
-                className="px-6 py-4 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-300 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Enviar
-              </button>
+                <button
+                  onClick={(e) => {
+                    const button = e.currentTarget;
+                    if (button) {
+                      button.classList.add('animate-press');
+                      handleSendMessage();
+                      setTimeout(() => button.classList.remove('animate-press'), 200);
+                    }
+                  }}
+                  className="p-1.5 bg-blue-600 rounded-full shadow-md hover:bg-blue-700 transition duration-300 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center"
+                >
+                  <img
+                    src="/img/send-icon.svg"
+                    alt="Enviar"
+                    className="w-11 h-11"
+                  />
+                </button>
             </div>
           </div>
         ) : (
@@ -243,7 +255,7 @@ const ChatPage = () => {
               </button>
               <button
                 onClick={handleDeleteRoom}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-md text-white"
+                className="px-4 py-2 bg-red-300 hover:bg-red-600 rounded-md text-white"
               >
                 Apagar
               </button>
