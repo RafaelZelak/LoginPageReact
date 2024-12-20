@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import io from "socket.io-client";
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
-import './ChatPage.css'
+import './ChatPage.css';
 
 const socket = io("http://localhost:5000");
 
@@ -25,7 +25,7 @@ const Contact = ({ name, bgColor, onClick, onDelete }) => {
             onDelete();
           }}
           className="absolute right-3 opacity-20 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-sm shadow-md hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition-opacity duration-300"
-          >
+        >
           Apagar
         </button>
       )}
@@ -47,7 +47,7 @@ const ChatPage = () => {
 
   useEffect(() => {
     if (!user) {
-      console.error("Usuário não autenticado.");
+      console.error("[SOCKET.IO] Usuário não autenticado.");
       return;
     }
 
@@ -56,7 +56,7 @@ const ChatPage = () => {
         const response = await axios.get("http://localhost:5000/chat/rooms");
         setRooms(response.data);
       } catch (error) {
-        console.error("Erro ao carregar salas:", error);
+        console.error("[FETCH] Erro ao carregar salas:", error);
       }
     };
 
@@ -77,13 +77,16 @@ const ChatPage = () => {
 
   const handleSelectRoom = async (room) => {
     setCurrentRoom(room);
+
+    socket.emit("join_room", { room_id: room.id });
+
     try {
       const response = await axios.get(
         `http://localhost:5000/chat/room/${room.id}/messages`
       );
       setMessages(response.data);
     } catch (error) {
-      console.error("Erro ao carregar mensagens da sala:", error);
+      console.error("[FETCH] Erro ao carregar mensagens da sala:", error);
     }
   };
 
@@ -102,7 +105,7 @@ const ChatPage = () => {
       }
       setShowDeletePopup(false);
     } catch (error) {
-      console.error("Erro ao apagar sala:", error);
+      console.error("[FETCH] Erro ao apagar sala:", error);
       alert("Erro ao apagar sala.");
     }
   };
@@ -114,11 +117,10 @@ const ChatPage = () => {
         username: user.nome,
         message,
         room_id: currentRoom.id,
-        created_at: new Date().toISOString(),
       };
 
       socket.emit("send_message", payload);
-      setMessages((prevMessages) => [...prevMessages, payload]);
+
       setMessage("");
     }
   };
@@ -133,7 +135,7 @@ const ChatPage = () => {
       setRooms([...rooms, response.data]);
       setNewRoomName("");
     } catch (error) {
-      console.error("Erro ao criar sala:", error);
+      console.error("[FETCH] Erro ao criar sala:", error);
     }
   };
 
@@ -176,60 +178,36 @@ const ChatPage = () => {
               Chat: {currentRoom.name}
             </h1>
             <div className="h-[700px] overflow-y-auto border border-gray-300 p-4 rounded-lg mb-6 bg-gray-50 shadow-inner">
-  {messages.length === 0 ? (
-    <p className="text-gray-500">Nenhuma mensagem ainda.</p>
-  ) : (
-    messages.reduce((acc, msg, index, array) => {
-      const currentDate = new Date(msg.created_at).toLocaleDateString();
-      const previousDate =
-        index > 0 ? new Date(array[index - 1].created_at).toLocaleDateString() : null;
-
-      if (currentDate !== previousDate) {
-        acc.push(
-          <div
-            key={`date-${currentDate}`}
-            className="relative flex items-center my-6"
-          >
-            <div className="flex-grow border-t border-gray-200"></div>
-            <span className="px-4 text-sm font-medium text-gray-400">
-              {currentDate}
-            </span>
-            <div className="flex-grow border-t border-gray-200"></div>
-          </div>
-        );
-      }
-
-      acc.push(
-        <div
-          key={msg.id || Math.random()}
-          className={`mb-4 flex ${
-            msg.username === user.nome ? "justify-end" : "justify-start"
-          }`}
-        >
-          <div
-            className={`max-w-md w-full p-4 rounded-lg text-white shadow-md ${
-              msg.username === user.nome ? "bg-sky-600/90" : "bg-gray-600"
-            }`}
-          >
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-gray-200">{msg.username}</span>
-              <span className="text-xs text-gray-300">
-                {new Date(msg.created_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
+              {messages.length === 0 ? (
+                <p className="text-gray-500">Nenhuma mensagem ainda.</p>
+              ) : (
+                messages.map((msg) => (
+                  <div
+                    key={msg.id || Math.random()}
+                    className={`mb-4 flex ${
+                      msg.username === user.nome ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`max-w-md w-full p-4 rounded-lg text-white shadow-md ${
+                        msg.username === user.nome ? "bg-sky-600/90" : "bg-gray-600"
+                      }`}
+                    >
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs text-gray-200">{msg.username}</span>
+                        <span className="text-xs text-gray-300">
+                          {new Date(msg.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-base">{msg.message}</p>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-            <p className="text-base">{msg.message}</p>
-          </div>
-        </div>
-      );
-
-
-      return acc;
-    }, [])
-  )}
-</div>
 
             <div className="flex gap-4 items-center">
               <input
@@ -239,23 +217,23 @@ const ChatPage = () => {
                 className="flex-grow p-4 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-md"
                 placeholder="Digite sua mensagem"
               />
-                <button
-                  onClick={(e) => {
-                    const button = e.currentTarget;
-                    if (button) {
-                      button.classList.add('animate-press');
-                      handleSendMessage();
-                      setTimeout(() => button.classList.remove('animate-press'), 200);
-                    }
-                  }}
-                  className="p-1.5 bg-blue-600 rounded-full shadow-md hover:bg-blue-700 transition duration-300 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center"
-                >
-                  <img
-                    src="/img/send-icon.svg"
-                    alt="Enviar"
-                    className="w-11 h-11"
-                  />
-                </button>
+              <button
+                onClick={(e) => {
+                  const button = e.currentTarget;
+                  if (button) {
+                    button.classList.add('animate-press');
+                    handleSendMessage();
+                    setTimeout(() => button.classList.remove('animate-press'), 200);
+                  }
+                }}
+                className="p-1.5 bg-blue-600 rounded-full shadow-md hover:bg-blue-700 transition duration-300 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center"
+              >
+                <img
+                  src="/img/send-icon.svg"
+                  alt="Enviar"
+                  className="w-11 h-11"
+                />
+              </button>
             </div>
           </div>
         ) : (

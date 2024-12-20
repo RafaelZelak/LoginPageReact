@@ -1,9 +1,8 @@
 from flask import Blueprint, request, jsonify
-from flask_socketio import emit
+from flask_socketio import emit, join_room
 from extensions import socketio, db
-from services.ChatService import ChatService
-import logging
 from sqlalchemy.sql import text
+import logging
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.WARNING)
@@ -11,38 +10,86 @@ log.setLevel(logging.WARNING)
 # Define o blueprint para as rotas de chat
 chat_route = Blueprint('chat_route', __name__)
 
-# Rota para carregar mensagens
-@chat_route.route('/load_messages', methods=['GET'])
-def load_messages():
+# Rota para carregar mensagens de uma sala
+@chat_route.route('/room/<int:room_id>/messages', methods=['GET'])
+def get_room_messages(room_id):
     try:
-        messages = ChatService.get_messages()
+        query = text("""
+            SELECT
+                c.id,
+                c.user_id,
+                c.message,
+                c.created_at,
+                c.room_id,
+                u.nome AS username
+            FROM chat_messages c
+            INNER JOIN users u ON c.user_id = u.id
+            WHERE c.room_id = :room_id AND c.deleted = FALSE
+            ORDER BY c.created_at ASC;
+        """)
+        result = db.session.execute(query, {'room_id': room_id}).mappings().all()
+        messages = [
+            {
+                'id': row['id'],
+                'user_id': row['user_id'],
+                'message': row['message'],
+                'created_at': row['created_at'],
+                'room_id': row['room_id'],
+                'username': row['username'],
+            }
+            for row in result
+        ]
         return jsonify(messages), 200
     except Exception as e:
-        logging.error(f"Erro ao carregar mensagens: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': f"Erro ao carregar mensagens: {str(e)}"}), 500
 
-# Evento de socket para enviar mensagens
+# Evento para entrar em uma sala
+@socketio.on('join_room')
+def handle_join_room(data):
+    room_id = data.get('room_id')
+    if room_id:
+        join_room(f"room_{room_id}")
+        print(f"[SOCKET.IO] Usuário entrou na sala room_{room_id}.")
+
+
+
+# Evento para enviar mensagens
 @socketio.on('send_message')
 def handle_send_message(data):
     user_id = data.get('user_id')
-    message = data.get('message', '')
+    message = data.get('message', '').strip()
     room_id = data.get('room_id')
 
-    if not user_id or not message.strip() or not room_id:
-        return emit('error', {'message': 'Dados inválidos'}, broadcast=False)
+    if not user_id or not message or not room_id:
+        emit('error', {'message': 'Dados inválidos'}, broadcast=False)
+        print("[SOCKET.IO] Dados inválidos ao enviar mensagem.")
+        return
 
     try:
-        # Salva a mensagem no banco de dados
-        result = ChatService.save_message(user_id, message, room_id)
+        # Insere a mensagem no banco de dados
+        query = text("""
+            INSERT INTO chat_messages (user_id, message, room_id, deleted)
+            VALUES (:user_id, :message, :room_id, FALSE)
+            RETURNING id, created_at;
+        """)
+        result = db.session.execute(query, {'user_id': user_id, 'message': message, 'room_id': room_id})
+        db.session.commit()
+
+        # Ajuste: acesso ao retorno da query
+        row = result.fetchone()
         new_message = {
-            'id': result[0],
-            'created_at': result[1],
+            'id': row[0],  # Primeiro índice para `id`
+            'created_at': row[1].isoformat(),  # Segundo índice para `created_at`
             'username': data.get('username', 'Usuário'),
             'message': message,
             'room_id': room_id,
         }
-        emit('receive_message', new_message, broadcast=True)
+
+        print(f"[SOCKET.IO] Emitindo mensagem para sala room_{room_id}: {new_message}")
+        emit('receive_message', new_message, to=f"room_{room_id}")
     except Exception as e:
+        db.session.rollback()
+        print(f"[SOCKET.IO] Erro ao processar mensagem: {str(e)}")
         emit('error', {'message': str(e)}, broadcast=False)
 
 # Rota para criar uma sala
@@ -79,7 +126,6 @@ def create_room():
 @chat_route.route('/rooms', methods=['GET'])  # Compatibilidade com rota esperada no frontend
 def list_rooms():
     try:
-        # Recupera todas as salas do banco de dados que não estão deletadas
         query = text("""
             SELECT id, name, created_at
             FROM chat_rooms
@@ -87,8 +133,7 @@ def list_rooms():
             ORDER BY created_at DESC;
         """)
         result = db.session.execute(query)
-        # Corrigindo o formato do resultado
-        rooms = [dict(row._mapping) for row in result]  # Uso de `._mapping` para obter os dados corretamente
+        rooms = [dict(row._mapping) for row in result]
         return jsonify(rooms), 200
     except Exception as e:
         logging.error(f"Erro ao listar salas: {str(e)}")
@@ -98,7 +143,6 @@ def list_rooms():
 @chat_route.route('/delete_room/<int:room_id>', methods=['DELETE'])
 def delete_room(room_id):
     try:
-        # Marca a sala como deletada
         query_room = text("""
             UPDATE chat_rooms
             SET deleted = TRUE
@@ -106,7 +150,6 @@ def delete_room(room_id):
         """)
         db.session.execute(query_room, {'room_id': room_id})
 
-        # Marca todas as mensagens dessa sala como deletadas
         query_messages = text("""
             UPDATE chat_messages
             SET deleted = TRUE
@@ -119,41 +162,4 @@ def delete_room(room_id):
     except Exception as e:
         db.session.rollback()
         logging.error(f"Erro ao deletar sala {room_id}: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@chat_route.route('/room/<int:room_id>/messages', methods=['GET'])
-def get_room_messages(room_id):
-    try:
-        # Consulta SQL para buscar mensagens, incluindo o nome do usuário
-        query = text("""
-            SELECT
-                c.id,
-                c.user_id,
-                c.message,
-                c.created_at,
-                c.room_id,
-                u.nome AS username
-            FROM chat_messages c
-            INNER JOIN users u ON c.user_id = u.id
-            WHERE c.room_id = :room_id AND c.deleted = FALSE
-            ORDER BY c.created_at ASC;
-        """)
-        # Usa `.mappings()` para garantir que o resultado seja um dicionário
-        result = db.session.execute(query, {'room_id': room_id}).mappings().all()
-
-        # Mapeia os resultados para o formato JSON esperado
-        messages = [
-            {
-                'id': row['id'],
-                'user_id': row['user_id'],
-                'message': row['message'],
-                'created_at': row['created_at'],
-                'room_id': row['room_id'],
-                'username': row['username'],  # Inclui o nome do usuário
-            }
-            for row in result
-        ]
-        return jsonify(messages), 200
-    except Exception as e:
-        logging.error(f"Erro ao carregar mensagens da sala {room_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
