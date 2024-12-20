@@ -7,10 +7,8 @@ import logging
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.WARNING)
 
-# Define o blueprint para as rotas de chat
 chat_route = Blueprint('chat_route', __name__)
 
-# Rota para carregar mensagens de uma sala
 @chat_route.route('/room/<int:room_id>/messages', methods=['GET'])
 def get_room_messages(room_id):
     try:
@@ -43,7 +41,6 @@ def get_room_messages(room_id):
     except Exception as e:
         return jsonify({'error': f"Erro ao carregar mensagens: {str(e)}"}), 500
 
-# Evento para entrar em uma sala
 @socketio.on('join_room')
 def handle_join_room(data):
     room_id = data.get('room_id')
@@ -51,9 +48,6 @@ def handle_join_room(data):
         join_room(f"room_{room_id}")
         print(f"[SOCKET.IO] Usuário entrou na sala room_{room_id}.")
 
-
-
-# Evento para enviar mensagens
 @socketio.on('send_message')
 def handle_send_message(data):
     user_id = data.get('user_id')
@@ -66,7 +60,6 @@ def handle_send_message(data):
         return
 
     try:
-        # Insere a mensagem no banco de dados
         query = text("""
             INSERT INTO chat_messages (user_id, message, room_id, deleted)
             VALUES (:user_id, :message, :room_id, FALSE)
@@ -75,11 +68,10 @@ def handle_send_message(data):
         result = db.session.execute(query, {'user_id': user_id, 'message': message, 'room_id': room_id})
         db.session.commit()
 
-        # Ajuste: acesso ao retorno da query
         row = result.fetchone()
         new_message = {
-            'id': row[0],  # Primeiro índice para `id`
-            'created_at': row[1].isoformat(),  # Segundo índice para `created_at`
+            'id': row[0],
+            'created_at': row[1].isoformat(),
             'username': data.get('username', 'Usuário'),
             'message': message,
             'room_id': room_id,
@@ -92,11 +84,10 @@ def handle_send_message(data):
         print(f"[SOCKET.IO] Erro ao processar mensagem: {str(e)}")
         emit('error', {'message': str(e)}, broadcast=False)
 
-# Rota para criar uma sala
 @chat_route.route('/create_room', methods=['POST', 'OPTIONS'])
 def create_room():
     if request.method == 'OPTIONS':
-        return jsonify({}), 200  # Resposta para preflight request
+        return jsonify({}), 200
 
     data = request.get_json()
     if not data or not data.get('name'):
@@ -121,9 +112,8 @@ def create_room():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-# Rota para listar salas existentes
 @chat_route.route('/list_rooms', methods=['GET'])
-@chat_route.route('/rooms', methods=['GET'])  # Compatibilidade com rota esperada no frontend
+@chat_route.route('/rooms', methods=['GET'])
 def list_rooms():
     try:
         query = text("""
@@ -139,7 +129,6 @@ def list_rooms():
         logging.error(f"Erro ao listar salas: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-# Rota para deletar uma sala
 @chat_route.route('/delete_room/<int:room_id>', methods=['DELETE'])
 def delete_room(room_id):
     try:
