@@ -130,12 +130,12 @@ const ChatPage = () => {
             type="text"
             value={newRoomName}
             onChange={(e) => setNewRoomName(e.target.value)}
-            className="flex-grow p-2 rounded-md text-gray-800"
+            className="flex-grow p-2 rounded-md text-black bg-gray-100 opacity-50 hover:opacity-100 focus:opacity-90 focus:outline-none focus:ring-0 transition duration-500"
             placeholder="Nova sala"
           />
           <button
             onClick={handleCreateRoom}
-            className="px-4 py-2 bg-green-500 rounded-lg text-white hover:bg-green-600"
+            className="px-4 py-2 bg-green-500 rounded-lg text-white hover:bg-green-600 opacity-50 hover:opacity-100 focus:opacity-90 focus:outline-none focus:ring-0 transition duration-500"
           >
             +
           </button>
@@ -160,20 +160,20 @@ const ChatPage = () => {
                     }`}
                   >
                     <div
-                      className={`max-w-md w-full p-4 rounded-lg text-white shadow-md ${
-                        msg.username === user.nome ? "bg-sky-600/90" : "bg-gray-600"
-                      }`}
+                    className={`message-bubble shadow-md text-white ${
+                        msg.username === user.nome ? "bg-sky-600/90 self-end" : "bg-gray-600 self-start"
+                    }`}
                     >
-                      <div className="flex justify-between items-center mb-2">
+                    <div className="flex justify-between items-center mb-2">
                         <span className="text-xs text-gray-200">{msg.username}</span>
                         <span className="text-xs text-gray-300">
-                          {new Date(msg.created_at).toLocaleTimeString([], {
+                        {new Date(msg.created_at).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
-                          })}
+                        })}
                         </span>
-                      </div>
-                      <p className="text-base">{msg.message}</p>
+                    </div>
+                    <p className="text-base">{msg.message}</p>
                     </div>
                   </div>
                 ))

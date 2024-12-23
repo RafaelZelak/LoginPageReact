@@ -29,3 +29,13 @@ body{
   .barraRolagem::-webkit-scrollbar-thumb:hover {
     background-color: #555; /* Cor do polegar quando o mouse passa por cima */
   }
+
+  .message-bubble {
+    display: inline-block;
+    max-width: 70%; /* Limite máximo do balão */
+    min-width: 130px; /* Largura mínima para balões curtos */
+    width: auto; /* Adapta ao tamanho da mensagem */
+    word-wrap: break-word; /* Quebra texto em palavras longas */
+    padding: 12px 18px; /* Espaçamento interno */
+    border-radius: 12px; /* Borda arredondada */
+  }
