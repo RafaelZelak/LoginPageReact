@@ -1,37 +1,9 @@
 import React, { useState, useEffect } from "react";
-import io from "socket.io-client";
-import { jwtDecode } from "jwt-decode";
 import axios from "axios";
-import './ChatPage.css';
-
-const socket = io("http://localhost:5000");
-
-const Contact = ({ name, bgColor, onClick, onDelete }) => {
-  const [hovered, setHovered] = useState(false);
-
-  return (
-    <div
-      className="flex items-center space-x-4 cursor-pointer hover:bg-gray-700 p-3 rounded-lg transition duration-300 relative"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onClick}
-    >
-      <div className={`w-12 h-12 ${bgColor} rounded-full`}></div>
-      <span className="text-lg font-medium">{name}</span>
-      {hovered && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          className="absolute right-3 opacity-20 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded-md text-sm shadow-md hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-400 transition-opacity duration-300"
-        >
-          Apagar
-        </button>
-      )}
-    </div>
-  );
-};
+import Contact from "../components/Contact";
+import socket from "../utils/socket";
+import { getUserFromToken } from "../utils/auth";
+import "../styles/ChatPage.css";
 
 const ChatPage = () => {
   const [rooms, setRooms] = useState([]);
@@ -42,8 +14,7 @@ const ChatPage = () => {
   const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState(null);
 
-  const token = localStorage.getItem("token");
-  const user = token ? jwtDecode(token)?.user : null;
+  const user = getUserFromToken();
 
   useEffect(() => {
     if (!user) {
@@ -177,7 +148,7 @@ const ChatPage = () => {
             <h1 className="text-3xl font-bold mb-8 text-gray-800">
               Chat: {currentRoom.name}
             </h1>
-            <div className="h-[700px] overflow-y-auto border border-gray-300 p-4 rounded-lg mb-6 bg-gray-50 shadow-inner">
+            <div className="barraRolagem h-[700px] overflow-y-auto border border-gray-300 p-4 rounded-lg mb-6 bg-gray-50 shadow-inner">
               {messages.length === 0 ? (
                 <p className="text-gray-500">Nenhuma mensagem ainda.</p>
               ) : (
@@ -210,13 +181,24 @@ const ChatPage = () => {
             </div>
 
             <div className="flex gap-4 items-center">
-              <input
+            <input
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                    e.preventDefault(); // Evita quebra de linha no campo de texto
+                    const button = e.currentTarget.nextElementSibling; // Obtém o botão de envio
+                    if (button) {
+                        button.classList.add('animate-press');
+                        handleSendMessage();
+                        setTimeout(() => button.classList.remove('animate-press'), 200);
+                    }
+                    }
+                }}
                 className="flex-grow p-4 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-md"
                 placeholder="Digite sua mensagem"
-              />
+                />
               <button
                 onClick={(e) => {
                   const button = e.currentTarget;

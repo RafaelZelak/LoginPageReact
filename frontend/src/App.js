@@ -4,7 +4,7 @@ import LoginForm from "./components/LoginPage/LoginForm/LoginForm";
 import SignupForm from "./components/Signup/SignupForm"; // Importação do SignupForm
 import Home from "./components/Home/Home";
 import ProtectedRoute from "./components/ProtectedRoute";
-import ChatPage from "./components/Chat/ChatPage"; // Importação do ChatPage
+import ChatPage from "./components/Chat/pages/ChatPage"; // Importação do ChatPage
 
 function App() {
   return (
