@@ -152,3 +152,19 @@ def delete_room(room_id):
         db.session.rollback()
         logging.error(f"Erro ao deletar sala {room_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@chat_route.route('/delete_message/<int:message_id>', methods=['DELETE'])
+def delete_message(message_id):
+    try:
+        query = text("""
+            UPDATE chat_messages
+            SET deleted = TRUE
+            WHERE id = :message_id;
+        """)
+        db.session.execute(query, {'message_id': message_id})
+        db.session.commit()
+        return jsonify({'message': 'Mensagem marcada como deletada com sucesso'}), 200
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Erro ao marcar mensagem {message_id} como deletada: {str(e)}")
+        return jsonify({'error': str(e)}), 500

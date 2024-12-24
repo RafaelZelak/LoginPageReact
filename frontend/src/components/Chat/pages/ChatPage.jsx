@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Contact from "../components/Contact";
+import Message from "../components/Message"; // Importe o componente Message
 import socket from "../utils/socket";
 import { getUserFromToken } from "../utils/auth";
 import "../styles/ChatPage.css";
@@ -63,6 +64,16 @@ const ChatPage = () => {
     }
   };
 
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await axios.delete(`http://localhost:5000/chat/delete_message/${messageId}`);
+      setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageId));
+    } catch (error) {
+      console.error("[FETCH] Erro ao apagar mensagem:", error);
+      alert("Erro ao apagar mensagem.");
+    }
+  };
+
   const confirlgeleteRoom = (roomId) => {
     setShowDeletePopup(true);
     setRoomToDelete(roomId);
@@ -116,19 +127,19 @@ const ChatPage = () => {
     <div className="relative min-h-screen flex flex-col lg:flex-row">
       {/* Botão para abrir o menu lateral no celular */}
       <button
-    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-    className={`fixed top-1 left-1 bg-gray-800 text-white rounded-lg lg:hidden z-20 h-12 w-12 flex items-center justify-center transition-all duration-300 delay-70 ${
-      isSidebarOpen ? "left-[16.25rem]" : "left-4"
-    }`}
-  >
-    ☰
-  </button>
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className={`fixed top-1 left-1 bg-gray-800 text-white rounded-lg lg:hidden z-20 h-12 w-12 flex items-center justify-center transition-all duration-300 delay-70 ${
+          isSidebarOpen ? "left-[16.25rem]" : "left-4"
+        }`}
+      >
+        ☰
+      </button>
       {/* Menu lateral */}
       <div
         className={`fixed inset-y-0 left-0 bg-gray-800 text-white w-80 p-6 flex flex-col space-y-8 shadow-lg overflow-y-auto lg:relative lg:translate-x-0 ${
-            isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         } transition-transform duration-300 z-10`}
-        >
+      >
         <h2 className="text-2xl font-semibold text-gray-200">Salas</h2>
         <div className="space-y-6">
           {rooms.map((room) => (
@@ -160,88 +171,57 @@ const ChatPage = () => {
 
       {/* Conteúdo principal */}
       <div className="flex-1 bg-gradient-to-br from-blue-200 via-blue-100 to-blue-200 pt-5 overflow-hidden">
-      {currentRoom ? (
-        <div className="flex flex-col items-center justify-center h-full">
+        {currentRoom ? (
+          <div className="flex flex-col items-center justify-center h-full">
             <div className="bg-white p-12 rounded-lg shadow-xl w-full max-w-6xl mx-auto mb-5">
-            <h1 className="text-3xl font-bold mb-8 text-gray-800">
+              <h1 className="text-3xl font-bold mb-8 text-gray-800">
                 Chat: {currentRoom.name}
-            </h1>
-            <div className="barraRolagem h-[70vh] overflow-y-auto border border-gray-300 p-4 rounded-lg mb-6 bg-gray-50 shadow-inner">
+              </h1>
+              <div className="barraRolagem h-[70vh] overflow-y-auto border border-gray-300 p-4 rounded-lg mb-6 bg-gray-50 shadow-inner">
                 {messages.length === 0 ? (
-                <p className="text-gray-500">Nenhuma mensagem ainda.</p>
+                  <p className="text-gray-500">Nenhuma mensagem ainda.</p>
                 ) : (
-                messages.map((msg) => (
-                    <div
-                    key={msg.id || Math.random()}
-                    className={`mb-4 flex ${
-                        msg.username === user.nome ? "justify-end" : "justify-start"
-                    }`}
-                    >
-                    <div
-                        className={`message-bubble shadow-lg text-white ${
-                        msg.username === user.nome
-                            ? "bg-sky-600/90 self-end"
-                            : "bg-gray-600 self-start"
-                        }`}
-                    >
-                        <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs text-gray-200">{msg.username}</span>
-                        <span className="text-xs text-gray-300">
-                            {new Date(msg.created_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            })}
-                        </span>
-                        </div>
-                        <p className="text-base">{msg.message}</p>
-                    </div>
-                    </div>
-                ))
+                  messages.map((msg) => (
+                    <Message
+                      key={msg.id}
+                      msg={msg}
+                      user={user}
+                      onDelete={handleDeleteMessage}
+                    />
+                  ))
                 )}
-            </div>
-            <div className="flex gap-4 items-center">
+              </div>
+              <div className="flex gap-4 items-center">
                 <input
-                type="text"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => {
+                  type="text"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                    e.preventDefault(); // Evita quebra de linha no campo de texto
-                    const button = e.currentTarget.nextElementSibling; // Obtém o botão de envio
-                    if (button) {
-                        button.classList.add("animate-press");
-                        handleSendMessage();
-                        setTimeout(() => button.classList.remove("animate-press"), 200);
+                      e.preventDefault();
+                      handleSendMessage();
                     }
-                    }
-                }}
-                className="flex-grow p-4 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-lg"
-                placeholder="Digite sua mensagem"
+                  }}
+                  className="flex-grow p-4 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-lg"
+                  placeholder="Digite sua mensagem"
                 />
                 <button
-                onClick={(e) => {
-                    const button = e.currentTarget;
-                    if (button) {
-                    button.classList.add("animate-press");
-                    handleSendMessage();
-                    setTimeout(() => button.classList.remove("animate-press"), 200);
-                    }
-                }}
-                className="p-1.5 bg-blue-600 rounded-full shadow-lg hover:bg-blue-700 transition duration-300 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center"
+                  onClick={handleSendMessage}
+                  className="p-1.5 bg-blue-600 rounded-full shadow-lg hover:bg-blue-700 transition duration-300 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center"
                 >
-                <img
+                  <img
                     src="/img/send-icon.svg"
                     alt="Enviar"
                     className="w-11 h-11"
-                />
+                  />
                 </button>
+              </div>
             </div>
-            </div>
-        </div>
+          </div>
         ) : (
-        <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full">
             <p className="text-gray-500 text-lg">Selecione uma sala</p>
-        </div>
+          </div>
         )}
       </div>
 
