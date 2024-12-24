@@ -13,6 +13,7 @@ const ChatPage = () => {
   const [newRoomName, setNewRoomName] = useState("");
   const [showDeletePopup, setShowDeletePopup] = useState(false);
   const [roomToDelete, setRoomToDelete] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Estado para controlar a visibilidade do menu lateral
 
   const user = getUserFromToken();
 
@@ -48,6 +49,7 @@ const ChatPage = () => {
 
   const handleSelectRoom = async (room) => {
     setCurrentRoom(room);
+    setIsSidebarOpen(false); // Fechar o menu ao selecionar uma sala no celular
 
     socket.emit("join_room", { room_id: room.id });
 
@@ -61,7 +63,7 @@ const ChatPage = () => {
     }
   };
 
-  const confirmDeleteRoom = (roomId) => {
+  const confirlgeleteRoom = (roomId) => {
     setShowDeletePopup(true);
     setRoomToDelete(roomId);
   };
@@ -111,8 +113,22 @@ const ChatPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-sky-600 via-sky-400 to-sky-300 flex overflow-hidden">
-      <div className="w-80 bg-gray-800 text-white p-6 flex flex-col space-y-8 shadow-lg overflow-y-auto max-h-screen">
+    <div className="relative min-h-screen flex flex-col lg:flex-row">
+      {/* Botão para abrir o menu lateral no celular */}
+      <button
+    onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+    className={`fixed top-1 left-1 bg-gray-800 text-white rounded-lg lg:hidden z-20 h-12 w-12 flex items-center justify-center transition-all duration-300 delay-70 ${
+      isSidebarOpen ? "left-[16.25rem]" : "left-4"
+    }`}
+  >
+    ☰
+  </button>
+      {/* Menu lateral */}
+      <div
+        className={`fixed inset-y-0 left-0 bg-gray-800 text-white w-80 p-6 flex flex-col space-y-8 shadow-lg overflow-y-auto lg:relative lg:translate-x-0 ${
+            isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } transition-transform duration-300 z-10`}
+        >
         <h2 className="text-2xl font-semibold text-gray-200">Salas</h2>
         <div className="space-y-6">
           {rooms.map((room) => (
@@ -121,7 +137,7 @@ const ChatPage = () => {
               name={room.name}
               bgColor="bg-blue-600"
               onClick={() => handleSelectRoom(room)}
-              onDelete={() => confirmDeleteRoom(room.id)}
+              onDelete={() => confirlgeleteRoom(room.id)}
             />
           ))}
         </div>
@@ -130,7 +146,7 @@ const ChatPage = () => {
             type="text"
             value={newRoomName}
             onChange={(e) => setNewRoomName(e.target.value)}
-            className="flex-grow p-2 rounded-md text-black bg-gray-100 opacity-50 hover:opacity-100 focus:opacity-90 focus:outline-none focus:ring-0 transition duration-500"
+            className="flex-grow p-2 rounded-lg text-black bg-gray-100 opacity-50 hover:opacity-100 focus:opacity-90 focus:outline-none focus:ring-0 transition duration-500"
             placeholder="Nova sala"
           />
           <button
@@ -142,46 +158,49 @@ const ChatPage = () => {
         </div>
       </div>
 
-      <div className="flex-1 bg-gradient-to-br from-blue-200 via-blue-100 to-blue-200 p-6 overflow-hidden">
-        {currentRoom ? (
-          <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-4xl mx-auto">
+      {/* Conteúdo principal */}
+      <div className="flex-1 bg-gradient-to-br from-blue-200 via-blue-100 to-blue-200 pt-5 overflow-hidden">
+      {currentRoom ? (
+        <div className="flex flex-col items-center justify-center h-full">
+            <div className="bg-white p-12 rounded-lg shadow-xl w-full max-w-6xl mx-auto mb-5">
             <h1 className="text-3xl font-bold mb-8 text-gray-800">
-              Chat: {currentRoom.name}
+                Chat: {currentRoom.name}
             </h1>
-            <div className="barraRolagem h-[700px] overflow-y-auto border border-gray-300 p-4 rounded-lg mb-6 bg-gray-50 shadow-inner">
-              {messages.length === 0 ? (
+            <div className="barraRolagem h-[70vh] overflow-y-auto border border-gray-300 p-4 rounded-lg mb-6 bg-gray-50 shadow-inner">
+                {messages.length === 0 ? (
                 <p className="text-gray-500">Nenhuma mensagem ainda.</p>
-              ) : (
+                ) : (
                 messages.map((msg) => (
-                  <div
+                    <div
                     key={msg.id || Math.random()}
                     className={`mb-4 flex ${
-                      msg.username === user.nome ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                    className={`message-bubble shadow-md text-white ${
-                        msg.username === user.nome ? "bg-sky-600/90 self-end" : "bg-gray-600 self-start"
+                        msg.username === user.nome ? "justify-end" : "justify-start"
                     }`}
                     >
-                    <div className="flex justify-between items-center mb-2">
+                    <div
+                        className={`message-bubble shadow-lg text-white ${
+                        msg.username === user.nome
+                            ? "bg-sky-600/90 self-end"
+                            : "bg-gray-600 self-start"
+                        }`}
+                    >
+                        <div className="flex justify-between items-center mb-2">
                         <span className="text-xs text-gray-200">{msg.username}</span>
                         <span className="text-xs text-gray-300">
-                        {new Date(msg.created_at).toLocaleTimeString([], {
+                            {new Date(msg.created_at).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
-                        })}
+                            })}
                         </span>
+                        </div>
+                        <p className="text-base">{msg.message}</p>
                     </div>
-                    <p className="text-base">{msg.message}</p>
                     </div>
-                  </div>
                 ))
-              )}
+                )}
             </div>
-
             <div className="flex gap-4 items-center">
-            <input
+                <input
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
@@ -190,38 +209,39 @@ const ChatPage = () => {
                     e.preventDefault(); // Evita quebra de linha no campo de texto
                     const button = e.currentTarget.nextElementSibling; // Obtém o botão de envio
                     if (button) {
-                        button.classList.add('animate-press');
+                        button.classList.add("animate-press");
                         handleSendMessage();
-                        setTimeout(() => button.classList.remove('animate-press'), 200);
+                        setTimeout(() => button.classList.remove("animate-press"), 200);
                     }
                     }
                 }}
-                className="flex-grow p-4 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-md"
+                className="flex-grow p-4 border border-gray-300 rounded-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-lg"
                 placeholder="Digite sua mensagem"
                 />
-              <button
+                <button
                 onClick={(e) => {
-                  const button = e.currentTarget;
-                  if (button) {
-                    button.classList.add('animate-press');
+                    const button = e.currentTarget;
+                    if (button) {
+                    button.classList.add("animate-press");
                     handleSendMessage();
-                    setTimeout(() => button.classList.remove('animate-press'), 200);
-                  }
+                    setTimeout(() => button.classList.remove("animate-press"), 200);
+                    }
                 }}
-                className="p-1.5 bg-blue-600 rounded-full shadow-md hover:bg-blue-700 transition duration-300 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center"
-              >
+                className="p-1.5 bg-blue-600 rounded-full shadow-lg hover:bg-blue-700 transition duration-300 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center"
+                >
                 <img
-                  src="/img/send-icon.svg"
-                  alt="Enviar"
-                  className="w-11 h-11"
+                    src="/img/send-icon.svg"
+                    alt="Enviar"
+                    className="w-11 h-11"
                 />
-              </button>
+                </button>
             </div>
-          </div>
+            </div>
+        </div>
         ) : (
-          <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-full">
             <p className="text-gray-500 text-lg">Selecione uma sala</p>
-          </div>
+        </div>
         )}
       </div>
 
@@ -237,13 +257,13 @@ const ChatPage = () => {
             <div className="flex justify-end space-x-4">
               <button
                 onClick={() => setShowDeletePopup(false)}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-md text-gray-800"
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-800"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleDeleteRoom}
-                className="px-4 py-2 bg-red-300 hover:bg-red-600 rounded-md text-white"
+                className="px-4 py-2 bg-red-300 hover:bg-red-600 rounded-lg text-white"
               >
                 Apagar
               </button>
