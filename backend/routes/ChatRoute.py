@@ -168,3 +168,38 @@ def delete_message(message_id):
         db.session.rollback()
         logging.error(f"Erro ao marcar mensagem {message_id} como deletada: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@chat_route.route('/edit_message/<int:message_id>', methods=['PUT'])
+def edit_message(message_id):
+    try:
+        data = request.get_json()
+        new_message = data.get('message', '').strip()
+
+        if not new_message:
+            return jsonify({'error': 'Mensagem não pode estar vazia'}), 400
+
+        query = text("""
+            UPDATE chat_messages
+            SET message = :new_message
+            WHERE id = :message_id AND deleted = FALSE
+            RETURNING room_id;
+        """)
+        result = db.session.execute(query, {'new_message': new_message, 'message_id': message_id})
+        db.session.commit()
+
+        row = result.fetchone()
+        if row:
+            room_id = row['room_id']
+            updated_message = {
+                'id': message_id,
+                'message': new_message,
+                'room_id': room_id
+            }
+            # Emissão do evento para os clientes conectados à sala
+            socketio.emit('message_edited', updated_message, to=f"room_{room_id}")
+
+        return jsonify({'message': 'Mensagem atualizada com sucesso'}), 200
+    except Exception as e:
+        db.session.rollback()
+        logging.error(f"Erro ao editar mensagem {message_id}: {str(e)}")
+        return jsonify({'error': str(e)}), 500

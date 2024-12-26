@@ -1,125 +1,135 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import Contact from "../components/Contact";
-import Message from "../components/Message"; // Importe o componente Message
-import socket from "../utils/socket";
-import { getUserFromToken } from "../utils/auth";
-import "../styles/ChatPage.css";
+import React, { useState, useEffect } from "react"; // Importação do React e hooks necessários
+import axios from "axios"; // Importação do Axios para chamadas HTTP
+import Contact from "../components/Contact"; // Importação do componente Contact
+import Message from "../components/Message"; // Importação do componente Message
+import socket from "../utils/socket"; // Importação da instância do socket
+import { getUserFromToken } from "../utils/auth"; // Função para obter dados do usuário a partir do token
+import "../styles/ChatPage.css"; // Importação do arquivo de estilos
 
-const ChatPage = () => {
-  const [rooms, setRooms] = useState([]);
-  const [currentRoom, setCurrentRoom] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState("");
-  const [newRoomName, setNewRoomName] = useState("");
-  const [showDeletePopup, setShowDeletePopup] = useState(false);
-  const [roomToDelete, setRoomToDelete] = useState(null);
+const ChatPage = () => { // Declaração do componente funcional ChatPage
+  const [rooms, setRooms] = useState([]); // Estado para armazenar as salas
+  const [currentRoom, setCurrentRoom] = useState(null); // Estado para a sala selecionada atualmente
+  const [messages, setMessages] = useState([]); // Estado para armazenar as mensagens da sala atual
+  const [message, setMessage] = useState(""); // Estado para a mensagem que o usuário está digitando
+  const [newRoomName, setNewRoomName] = useState(""); // Estado para o nome de uma nova sala
+  const [showDeletePopup, setShowDeletePopup] = useState(false); // Estado para controlar o popup de exclusão
+  const [roomToDelete, setRoomToDelete] = useState(null); // Estado para a sala a ser deletada
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Estado para controlar a visibilidade do menu lateral
 
-  const user = getUserFromToken();
+  const user = getUserFromToken(); // Obtém o usuário a partir do token
 
-  useEffect(() => {
-    if (!user) {
+  useEffect(() => { // Efeito colateral para inicialização e configuração do socket
+    if (!user) { // Verifica se o usuário está autenticado
       console.error("[SOCKET.IO] Usuário não autenticado.");
       return;
     }
 
-    const fetchRooms = async () => {
+    const fetchRooms = async () => { // Função para buscar as salas disponíveis
       try {
-        const response = await axios.get("http://localhost:5000/chat/rooms");
-        setRooms(response.data);
+        const response = await axios.get("http://localhost:5000/chat/rooms"); // Requisição para obter salas
+        setRooms(response.data); // Atualiza o estado com as salas recebidas
       } catch (error) {
-        console.error("[FETCH] Erro ao carregar salas:", error);
+        console.error("[FETCH] Erro ao carregar salas:", error); // Loga erros caso ocorram
       }
     };
 
-    fetchRooms();
+    fetchRooms(); // Chama a função para buscar salas
 
-    const handleMessage = (data) => {
-      if (data.room_id === currentRoom?.id) {
-        setMessages((prevMessages) => [...prevMessages, data]);
+    const handleMessage = (data) => { // Manipulador para novas mensagens recebidas pelo socket
+      if (data.room_id === currentRoom?.id) { // Verifica se a mensagem pertence à sala atual
+        setMessages((prevMessages) => [...prevMessages, data]); // Adiciona a mensagem ao estado
       }
     };
 
-    socket.on("receive_message", handleMessage);
-
-    return () => {
-      socket.off("receive_message", handleMessage);
+    const handleEditedMessage = (editedMessage) => { // Manipulador para mensagens editadas
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) => // Atualiza a mensagem editada no estado
+          msg.id === editedMessage.id ? { ...msg, message: editedMessage.message } : msg
+        )
+      );
     };
-  }, [user, currentRoom]);
 
-  const handleSelectRoom = async (room) => {
-    setCurrentRoom(room);
-    setIsSidebarOpen(false); // Fechar o menu ao selecionar uma sala no celular
+    socket.on("receive_message", handleMessage); // Registra o evento de novas mensagens
+    socket.on("message_edited", handleEditedMessage); // Registra o evento de mensagens editadas
 
-    socket.emit("join_room", { room_id: room.id });
+    return () => { // Limpeza ao desmontar o componente
+      socket.off("receive_message", handleMessage); // Remove o evento de novas mensagens
+      socket.off("message_edited", handleEditedMessage); // Remove o evento de mensagens editadas
+    };
+  }, [user, currentRoom]); // Efeito executado quando o usuário ou sala atual mudam
+
+  const handleSelectRoom = async (room) => { // Função para selecionar uma sala
+    setCurrentRoom(room); // Define a sala atual
+    setIsSidebarOpen(false); // Fecha o menu lateral no modo mobile
+
+    socket.emit("join_room", { room_id: room.id }); // Emite evento para entrar na sala via socket
 
     try {
-      const response = await axios.get(
+      const response = await axios.get( // Busca as mensagens da sala selecionada
         `http://localhost:5000/chat/room/${room.id}/messages`
       );
-      setMessages(response.data);
+      setMessages(response.data); // Atualiza o estado com as mensagens recebidas
     } catch (error) {
-      console.error("[FETCH] Erro ao carregar mensagens da sala:", error);
+      console.error("[FETCH] Erro ao carregar mensagens:", error.response?.data || error);
+      alert("Não foi possível carregar as mensagens da sala. Tente novamente mais tarde.");
     }
   };
 
-  const handleDeleteMessage = async (messageId) => {
+  const handleDeleteMessage = async (messageId) => { // Função para deletar uma mensagem
     try {
-      await axios.delete(`http://localhost:5000/chat/delete_message/${messageId}`);
-      setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageId));
+      await axios.delete(`http://localhost:5000/chat/delete_message/${messageId}`); // Faz a requisição para deletar a mensagem
+      setMessages((prevMessages) => prevMessages.filter((msg) => msg.id !== messageId)); // Remove a mensagem do estado
     } catch (error) {
-      console.error("[FETCH] Erro ao apagar mensagem:", error);
-      alert("Erro ao apagar mensagem.");
+      console.error("[FETCH] Erro ao apagar mensagem:", error); // Loga erro se ocorrer
+      alert("Erro ao apagar mensagem."); // Alerta ao usuário
     }
   };
 
-  const confirlgeleteRoom = (roomId) => {
-    setShowDeletePopup(true);
-    setRoomToDelete(roomId);
+  const confirlgeleteRoom = (roomId) => { // Configura o estado para deletar uma sala
+    setShowDeletePopup(true); // Mostra o popup de exclusão
+    setRoomToDelete(roomId); // Define a sala a ser deletada
   };
 
-  const handleDeleteRoom = async () => {
+  const handleDeleteRoom = async () => { // Função para deletar uma sala
     try {
-      await axios.delete(`http://localhost:5000/chat/delete_room/${roomToDelete}`);
-      setRooms(rooms.filter((room) => room.id !== roomToDelete));
-      if (currentRoom?.id === roomToDelete) {
-        setCurrentRoom(null);
-        setMessages([]);
+      await axios.delete(`http://localhost:5000/chat/delete_room/${roomToDelete}`); // Faz a requisição para deletar a sala
+      setRooms(rooms.filter((room) => room.id !== roomToDelete)); // Remove a sala do estado
+      if (currentRoom?.id === roomToDelete) { // Verifica se a sala atual é a deletada
+        setCurrentRoom(null); // Limpa a sala atual
+        setMessages([]); // Limpa as mensagens
       }
-      setShowDeletePopup(false);
+      setShowDeletePopup(false); // Esconde o popup de exclusão
     } catch (error) {
-      console.error("[FETCH] Erro ao apagar sala:", error);
-      alert("Erro ao apagar sala.");
+      console.error("[FETCH] Erro ao apagar sala:", error); // Loga erro se ocorrer
+      alert("Erro ao apagar sala."); // Alerta ao usuário
     }
   };
 
-  const handleSendMessage = () => {
-    if (message.trim() !== "" && user && currentRoom) {
-      const payload = {
+  const handleSendMessage = () => { // Função para enviar uma mensagem
+    if (message.trim() !== "" && user && currentRoom) { // Verifica se os dados são válidos
+      const payload = { // Prepara o payload
         user_id: user.id,
         username: user.nome,
         message,
         room_id: currentRoom.id,
       };
 
-      socket.emit("send_message", payload);
-
-      setMessage("");
+      socket.emit("send_message", payload); // Emite o evento via socket
+      setMessage(""); // Limpa o campo de mensagem
     }
   };
 
-  const handleCreateRoom = async () => {
-    if (!newRoomName.trim()) return;
+  const handleCreateRoom = async () => { // Função para criar uma nova sala
+    if (!newRoomName.trim()) return; // Retorna se o nome for inválido
 
     try {
-      const response = await axios.post("http://localhost:5000/chat/create_room", {
+      const response = await axios.post("http://localhost:5000/chat/create_room", { // Faz a requisição para criar a sala
         name: newRoomName,
       });
-      setRooms([...rooms, response.data]);
-      setNewRoomName("");
+      setRooms([...rooms, response.data]); // Adiciona a nova sala ao estado
+      setNewRoomName(""); // Limpa o campo de nome
     } catch (error) {
-      console.error("[FETCH] Erro ao criar sala:", error);
+      console.error("[FETCH] Erro ao criar sala:", error); // Loga erro se ocorrer
     }
   };
 
