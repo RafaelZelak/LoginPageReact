@@ -3,11 +3,30 @@ from flask_socketio import emit, join_room
 from extensions import socketio, db
 from sqlalchemy.sql import text
 import logging
+import base64
 
 log = logging.getLogger('werkzeug')
 log.setLevel(logging.WARNING)
 
 chat_route = Blueprint('chat_route', __name__)
+
+def detect_image_type(image_bytes):
+    # Certifique-se de que a entrada é do tipo bytes
+    if isinstance(image_bytes, memoryview):
+        image_bytes = image_bytes.tobytes()
+
+    if image_bytes.startswith(b'\xFF\xD8\xFF'):
+        return "jpeg"
+    elif image_bytes.startswith(b'\x89PNG'):
+        return "png"
+    elif image_bytes[:6] in [b'GIF89a', b'GIF87a']:
+        return "gif"
+    elif image_bytes.startswith(b'BM'):
+        return "bmp"
+    elif image_bytes.startswith(b'RIFF') and b'WEBP' in image_bytes[:12]:
+        return "webp"
+    else:
+        return "unknown"
 
 @chat_route.route('/room/<int:room_id>/messages', methods=['GET'])
 def get_room_messages(room_id):
@@ -117,13 +136,28 @@ def create_room():
 def list_rooms():
     try:
         query = text("""
-            SELECT id, name, created_at
+            SELECT id, name, created_at, image
             FROM chat_rooms
             WHERE deleted = FALSE
             ORDER BY created_at DESC;
         """)
-        result = db.session.execute(query)
-        rooms = [dict(row._mapping) for row in result]
+        result = db.session.execute(query).mappings()
+
+        rooms = []
+
+        for row in result:
+            image_data = row['image']
+            # Converte memoryview para bytes
+            image_bytes = image_data.tobytes() if image_data else None
+            image_type = detect_image_type(image_bytes) if image_bytes else None
+            rooms.append({
+                'id': row['id'],
+                'name': row['name'],
+                'created_at': row['created_at'],
+                'image': 'data:image/{};base64,'.format(image_type) + base64.b64encode(image_bytes).decode('utf-8') if image_bytes else None,
+                'image_type': image_type,
+            })
+
         return jsonify(rooms), 200
     except Exception as e:
         logging.error(f"Erro ao listar salas: {str(e)}")
@@ -202,4 +236,28 @@ def edit_message(message_id):
     except Exception as e:
         db.session.rollback()
         logging.error(f"Erro ao editar mensagem {message_id}: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@chat_route.route('/upload_image/<int:room_id>', methods=['POST'])
+def upload_image(room_id):
+    try:
+        file = request.files['image']
+        if not file:
+            return jsonify({'error': 'Nenhum arquivo enviado'}), 400
+
+        # Ler o arquivo como binário
+        image_binary = file.read()
+
+        # Atualizar a coluna `image` da sala
+        query = text("""
+            UPDATE chat_rooms
+            SET image = :image
+            WHERE id = :room_id;
+        """)
+        db.session.execute(query, {'image': image_binary, 'room_id': room_id})
+        db.session.commit()
+
+        return jsonify({'message': 'Imagem salva com sucesso'}), 200
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500

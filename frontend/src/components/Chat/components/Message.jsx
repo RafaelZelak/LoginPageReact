@@ -128,21 +128,21 @@ const Message = ({ msg, user, onDelete }) => {
               </svg>
             </button>
             <div
-              className={`absolute top-8 right-0 bg-white shadow-lg rounded-lg p-2 z-10 transition-transform duration-300 ease-in-out transform ${
+              className={`absolute top-8 right-0 bg-white shadow-lg z-10 transition-transform duration-300 ease-in-out transform ${
                 showMenu ? 'scale-100 opacity-100' : 'scale-95 opacity-0 pointer-events-none'
               }`}
             >
-              <button className="text-gray-500 hover:text-gray-700">Info</button>
+              <button className="w-full text-gray-500 hover:text-gray-700 hover:bg-gray-200 m-0 p-2">Info</button>
               <br />
               <button
                 onClick={handleEdit}
-                className="text-gray-500 hover:text-gray-700"
+                className="w-full text-gray-500 hover:text-gray-700 hover:bg-gray-200 m-0 p-2"
               >
                 Editar
               </button>
               <button
                 onClick={() => setShowConfirm(true)}
-                className="text-red-500 hover:text-red-700 transition-colors"
+                className="w-full text-red-500 hover:text-red-700 transition-colors hover:bg-gray-200 m-0 p-2"
               >
                 Excluir
               </button>

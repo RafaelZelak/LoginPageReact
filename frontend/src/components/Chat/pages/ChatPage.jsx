@@ -151,15 +151,23 @@ const ChatPage = () => { // Declaração do componente funcional ChatPage
         } transition-transform duration-300 z-10`}
       >
         <h2 className="text-2xl font-semibold text-gray-200">Salas</h2>
-        <div className="space-y-6">
+        <div className="space-y-0">
+        <hr className="border-t border-gray-400 w-full m-0 opacity-20" />
           {rooms.map((room) => (
-            <Contact
-              key={room.id}
-              name={room.name}
-              bgColor="bg-blue-600"
-              onClick={() => handleSelectRoom(room)}
-              onDelete={() => confirlgeleteRoom(room.id)}
-            />
+            <div key={room.id} className="w-full flex flex-col">
+              {/* Sala ocupando 100% da largura */}
+              <div className="w-full">
+              <Contact
+                name={room.name}
+                bgColor="bg-blue-600"
+                room={room} // Passa o objeto completo da sala
+                onClick={() => handleSelectRoom(room)}
+                onDelete={() => confirlgeleteRoom(room.id)}
+              />
+              </div>
+              {/* Linha horizontal que ocupa 100% da largura e não cria margem extra */}
+              <hr className="border-t border-gray-400 w-full m-0 opacity-20" />
+            </div>
           ))}
         </div>
         <div className="flex items-center gap-2">
